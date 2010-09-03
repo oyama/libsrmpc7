@@ -1,0 +1,33 @@
+libsrmpc7 - Access library to the SRM PowerControl VI/7
+=======================================================
+
+USAGE
+-----
+  $ ./srmcat
+  $ ./srmsync
+
+BUILD and INSTALL
+-----------------
+  $ make
+
+
+DEPENDENCY
+----------
+libftd2xx.dylib:
+  "FTDI D2XX driver",
+  http://www.ftdichip.com/Drivers/D2XX.htm
+
+
+API
+---
+See srmpc7.h
+
+
+LICENSE
+-------
+
+
+AUTHOR
+------
+Hiroyuki OYAMA <oyama@module.jp>
+http://oyama.vox.com/
