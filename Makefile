@@ -3,12 +3,14 @@ LIBS=-L/usr/local/lib -lftd2xx
 DEBUG=
 
 LIBSRMPC7_OBJ=srmpc7.o
+SRMSYNC_OBJ=srmsync.o file_tcx.o
+
 
 .c.o:
 	$(CC) -Wall $(CFLAGS) $(DEBUG) -c $<
 
 
-all: libsrmpc7.a srmcat srmsync
+all: libsrmpc7.a srmcat srmsync srmonline
 
 
 libsrmpc7.a: srmpc7.h $(LIBSRMPC7_OBJ)
@@ -17,7 +19,10 @@ libsrmpc7.a: srmpc7.h $(LIBSRMPC7_OBJ)
 srmcat: libsrmpc7.a srmcat.o
 	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
 
-srmsync: libsrmpc7.a srmsync.o
+srmsync: libsrmpc7.a $(SRMSYNC_OBJ)
+	$(CC) $(CFLAGS) -o $@ $(SRMSYNC_OBJ) libsrmpc7.a $(LIBS)
+
+srmonline: libsrmpc7.a srmonline.o
 	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
 
 
@@ -29,9 +34,9 @@ libmockftd2xx.a: libmockftd2xx.o _mock_data.h
 	$(AR) -csr libmockftd2xx.a libmockftd2xx.o
 mock_srmcat: libsrmpc7.a srmcat.o
 	$(CC) $(CFLAGS) -o mock_srmcat srmcat.o libsrmpc7.a libmockftd2xx.a
-mock_srmsync: libsrmpc7.a srmsync.o
-	$(CC) $(CFLAGS) -o mock_srmsync srmsync.o libsrmpc7.a libmockftd2xx.a
+mock_srmsync: libsrmpc7.a $(SRMSYNC_OBJ)
+	$(CC) $(CFLAGS) -o mock_srmsync $(SRMSYNC_OBJ) libsrmpc7.a libmockftd2xx.a
 
 
 clean:
-	rm -f *.a *.o mock_* srmcat srmsync
+	rm -f *.a *.o mock_* srmcat srmsync srmonline

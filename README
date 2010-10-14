@@ -5,6 +5,7 @@ USAGE
 -----
   $ ./srmcat
   $ ./srmsync
+  $ ./srmonline
 
 BUILD and INSTALL
 -----------------

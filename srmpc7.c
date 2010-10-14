@@ -22,6 +22,7 @@ static const unsigned char SRM_CMD_NEXT_RIDE_FILE[2]   = {0x04, 0x02};
 static const unsigned char SRM_CMD_GET_RIDE_RECORDS[2] = {0x04, 0x04};
 static const unsigned char SRM_CMD_RETRY_GET_RIDE_RECORDS[2] = {0x04, 0x05};
 
+static const unsigned char SRM_CMD_GET_ONLINE_STATUS[2] = {0x01, 0x06};
 static const unsigned char SRM_RESPONSE_HELLO[] = {0xa4, 0xb0, 0x00, 0x05, 0x01, 0x01, 0xa6, 0x15, 0xa2};
 
 static char srm_error_message[1024];
@@ -131,7 +132,11 @@ static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
         return 0;
     }
     *out_size = l;
-
+/*
+    if (memcmp(cmd, SRM_CMD_GET_ONLINE_STATUS, 2) == 0) {
+        return *out_size;
+    }
+*/
     /* clear read buffer */
     st = FT_Read(fh, buff, 0, &l);
     if (st != FT_OK) {
@@ -385,6 +390,35 @@ int srm_each_ride_record(srm_ride_block_t *fh, srm_ride_record_t *record)
     fh->remind += 1;
 
     return fh->remind;
+}
+
+
+
+int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record)
+{
+    size_t rc, out_len;
+    unsigned char buff[19];
+
+    rc = srm_msg_exchange(handle, SRM_CMD_GET_ONLINE_STATUS, buff, sizeof(buff), &out_len);
+    if (rc <= 0) {
+        strcpy(srm_error_message, "can't exchange cmd GET_ONLINE_STATUS");
+        return 0;
+    }
+    if (!is_valid_packet(buff, rc)) {
+        strcpy(srm_error_message, "invalid packet GET_ONLINE_STATUS");
+        return 0;
+    }
+
+    record->rec1        = buff[6];
+    record->power       = (buff[7] << 8) | buff[8];
+    record->cadence     = buff[9];
+    record->speed       = (buff[10] << 8) | buff[11];
+    record->heart_rate  = buff[12];
+    record->altitude    = (buff[13] << 8) | buff[14];
+    record->temperature = (buff[15] << 8) | buff[16];
+    record->marker      = buff[17];
+
+    return 1;
 }
 
 

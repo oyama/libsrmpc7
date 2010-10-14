@@ -64,6 +64,21 @@ typedef struct {
 } srm_ride_record_t;
 
 
+// a4 b0 00 0f 01 06 02 00 00 00 00 00 00 00 37 01 2c e6 e2 
+//                      ^^^^^ ^^ ^^^^^ ^^ ^^^^^ ^^^^^ ^^
+//                      Power Ca speed HR alt   temp  ??
+typedef struct {
+    int rec1;
+    unsigned int power;      /* Power[W] */
+    unsigned int cadence;    /* Cadence[rpm] */
+    unsigned int speed;      /* Speed[km/h] x 10 */
+    unsigned int heart_rate; /* Heart rate[bpm] */
+    int altitude;            /* Altitude[m] */
+    int temperature;         /* Temperature[deg] x 10 */
+    int marker;              /* 1=interval on, 0=recovery, 230=? */
+} srm_online_record_t;
+
+
 /**
  * Open the SRM PowerControl device.
  * @param The device name
@@ -97,6 +112,9 @@ int srm_close_ride_block(srm_ride_block_t *block);
  * @return If successful, the record number(1..n) is returned. Upon reading end of block, zero is returned. Otherwise, a -1 is returned to indicate the error.
  */
 int srm_each_ride_record(srm_ride_block_t *block, srm_ride_record_t *record);
+
+
+int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record);
 
 /**
  * Get latest error message.
