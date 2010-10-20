@@ -116,6 +116,9 @@ int srm_each_ride_record(srm_ride_block_t *block, srm_ride_record_t *record);
 
 int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record);
 
+
+int srm_clear_ride_data(srm_handle_t *handle);
+
 /**
  * Get latest error message.
  * @return error message.

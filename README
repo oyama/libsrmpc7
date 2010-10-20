@@ -5,6 +5,7 @@ USAGE
 -----
   $ ./srmcat
   $ ./srmsync
+  $ ./srmerase
   $ ./srmonline -q | nc -l 8168
 
 BUILD and INSTALL

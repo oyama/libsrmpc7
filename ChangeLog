@@ -1,5 +1,8 @@
 Revision history for libsrmpc7.
 
+0.03  Wed Oct 20 22:34:51 JST 2010
+	* support "Erase Log data".
+
 0.02  Fri Oct 15 02:00:53 JST 2010
 	* support "Online mode".
 	* add srmonline.c

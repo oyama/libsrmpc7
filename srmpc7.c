@@ -22,6 +22,16 @@ static const unsigned char SRM_CMD_NEXT_RIDE_FILE[2]   = {0x04, 0x02};
 static const unsigned char SRM_CMD_GET_RIDE_RECORDS[2] = {0x04, 0x04};
 static const unsigned char SRM_CMD_RETRY_GET_RIDE_RECORDS[2] = {0x04, 0x05};
 
+static const unsigned char SRM_CMD_GET_TIME[2]         = {0x02, 0x0e};
+                               // day[1], month[1], year[2], hour[1], min[1], sec[1]
+static const unsigned char SRM_CMD_GET_CIRCUMFERENCE[2] = {0x02, 0x03};
+                              // circumference[2]
+static const unsigned char SRM_CMD_GET_INITIAL[2]       = {0x02, 0x05};
+                             // initial[20];
+static const unsigned char SRM_CMD_GET_ZERO_OFFSET[2]   = {0x02, 0x02}; // int[2], int[2]
+
+static const unsigned char SRM_CMD_CLEAR_RIDE_DATA[2]   = {0x04, 0x07};
+
 static const unsigned char SRM_CMD_GET_ONLINE_STATUS[2] = {0x01, 0x06};
 static const unsigned char SRM_RESPONSE_HELLO[] = {0xa4, 0xb0, 0x00, 0x05, 0x01, 0x01, 0xa6, 0x15, 0xa2};
 
@@ -190,14 +200,25 @@ static int init_handle(srm_handle_t *handle)
     size_t rc, len;
 
     fh = *(handle->handle);
-    st = FT_SetLatencyTimer(fh, SRM_DEVICE_LATENCY_TIMER);
-    if (st != FT_OK) {
-        strcpy(srm_error_message, "can't set latency timer");
-        return 0;
-    }
+
     st = FT_SetBaudRate(fh, FT_BAUD_38400);
     if (st != FT_OK) {
         strcpy(srm_error_message, "can't set baud rate");
+        return 0;
+    }
+    st = FT_SetFlowControl(fh, FT_FLOW_NONE, 0, 0);
+    if (st != FT_OK) {
+        strcpy(srm_error_message, "can't set flow control");
+        return 0;
+    }
+    st = FT_SetTimeouts(fh, 1000, 500);
+    if (st != FT_OK) {
+        strcpy(srm_error_message, "can't set timeouts");
+        return 0;
+    }
+    st = FT_SetLatencyTimer(fh, 80);
+    if (st != FT_OK) {
+        strcpy(srm_error_message, "can't set latency timer");
         return 0;
     }
     st = FT_SetDataCharacteristics(fh, FT_BITS_8, FT_STOP_BITS_1, FT_PARITY_NONE);
@@ -205,9 +226,9 @@ static int init_handle(srm_handle_t *handle)
         strcpy(srm_error_message, "can't set data characteristics");
         return 0;
     }
-    st = FT_SetTimeouts(fh, 2000, 2000);
+    st = FT_SetUSBParameters(fh, 64, 64);
     if (st != FT_OK) {
-        strcpy(srm_error_message, "can't set timeouts");
+        strcpy(srm_error_message, "can't set data characteristics");
         return 0;
     }
 
@@ -417,6 +438,25 @@ int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record)
     record->altitude    = (buff[13] << 8) | buff[14];
     record->temperature = (buff[15] << 8) | buff[16];
     record->marker      = buff[17];
+
+    return 1;
+}
+
+
+int srm_clear_ride_data(srm_handle_t *handle)
+{
+    size_t rc, out_len;
+    unsigned char buff[64];
+ 
+    rc = srm_msg_exchange(handle, SRM_CMD_CLEAR_RIDE_DATA, buff, sizeof(buff), &out_len);
+    if (rc <= 0) {
+        strcpy(srm_error_message, "can't exchange cmd SRM_CMD_CLEAR_RIDE_DATA");
+        return 0;
+    }
+    if (!is_valid_packet(buff, rc)) {
+        strcpy(srm_error_message, "invalid packet SRM_CMD_CLEAR_RIDE_DATA");
+        return 0;
+    }
 
     return 1;
 }

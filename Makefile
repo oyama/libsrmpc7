@@ -10,7 +10,7 @@ SRMSYNC_OBJ=srmsync.o file_tcx.o
 	$(CC) -Wall $(CFLAGS) $(DEBUG) -c $<
 
 
-all: libsrmpc7.a srmcat srmsync srmonline
+all: libsrmpc7.a srmcat srmsync srmonline srmerase
 
 
 libsrmpc7.a: srmpc7.h $(LIBSRMPC7_OBJ)
@@ -25,6 +25,8 @@ srmsync: libsrmpc7.a $(SRMSYNC_OBJ)
 srmonline: libsrmpc7.a srmonline.o
 	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
 
+srmerase: libsrmpc7.a srmerase.o
+	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
 
 mock: mockup
 
@@ -39,4 +41,4 @@ mock_srmsync: libsrmpc7.a $(SRMSYNC_OBJ)
 
 
 clean:
-	rm -f *.a *.o mock_* srmcat srmsync srmonline
+	rm -f *.a *.o mock_* srmcat srmsync srmonline srmerase
