@@ -1,5 +1,8 @@
 Revision history for libsrmpc7.
 
+0.04  Mon Nov  8 18:21:33 JST 2010
+	* fix, negative altitude and temperature.
+
 0.03  Wed Oct 20 22:34:51 JST 2010
 	* support "Erase Log data".
 

@@ -47,7 +47,7 @@ int main()
             if (record.power == 0 && record.heart_rate == 0 && record.cadence == 0 && record.speed == 0) {
                 continue;
             }
-            printf("%5u %4u %4u %5.1f %5u %5.1f  %u:%02u:%02u %6u\r\n",
+            printf("%5u %4u %4u %5.1f %5d %5.1f  %u:%02u:%02u %6u\r\n",
                 record.power,
                 record.heart_rate,
                 record.cadence,

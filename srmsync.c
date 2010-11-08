@@ -96,7 +96,7 @@ int srm_sync_output_file_txt(output_file_t *file, char *dir)
             cur = cur->next;
             continue;
         }
-        fprintf(fp, "%5u %4u %4u %5.1f %5u %5.1f  %u:%02u:%02u %6u\r\n",
+        fprintf(fp, "%5u %4u %4u %5.1f %5d %5.1f  %u:%02u:%02u %6u\r\n",
                data->power,
                data->heart_rate,
                data->cadence,

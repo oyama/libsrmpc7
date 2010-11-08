@@ -9,7 +9,7 @@ extern "C" {
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
-#include <ftd2xx.h>
+#include "ftd2xx.h"
 
 
 #define SRM_DEVICE_NAME_PC7 "POWERCONTROL 7"

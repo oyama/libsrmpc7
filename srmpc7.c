@@ -397,8 +397,8 @@ int srm_each_ride_record(srm_ride_block_t *fh, srm_ride_record_t *record)
     record->cadence     = cur[2];
     record->speed       = (cur[3] << 8) | cur[4];
     record->heart_rate  = cur[5];
-    record->altitude    = (cur[6] << 8) | cur[7];
-    record->temperature = (cur[8] << 8) | cur[9];
+    record->altitude    = (short)((cur[6] << 8) | cur[7]);
+    record->temperature = (short)((cur[8] << 8) | cur[9]);
     record->interval    = cur[10];
 
     ts = mktime(&fh->datetime) + fh->remind;
@@ -435,8 +435,8 @@ int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record)
     record->cadence     = buff[9];
     record->speed       = (buff[10] << 8) | buff[11];
     record->heart_rate  = buff[12];
-    record->altitude    = (buff[13] << 8) | buff[14];
-    record->temperature = (buff[15] << 8) | buff[16];
+    record->altitude    = (short)((buff[13] << 8) | buff[14]);
+    record->temperature = (short)((buff[15] << 8) | buff[16]);
     record->marker      = buff[17];
 
     return 1;
