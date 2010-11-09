@@ -84,7 +84,7 @@ static file_tcx_activity_lap_t *new_tcx_activity_lap()
         fprintf(stderr, "%s: out of memory\n", PROGRAM_NAME);
         exit(1);
     }
-    lap->total_time_seconds = 0;
+    lap->total_time_seconds = 1;
     lap->distance_meters = 0.0;
     lap->maximum_speed = 0.0;
     lap->calories = 0;
@@ -162,6 +162,7 @@ int srm_sync_output_file_tcx(output_file_t *file, char *dir)
     gmtime_r(&gmt_t, &gmt_tm);
     fprintf(fp, TCX_HEAD, gmt_tm.tm_year+1900, gmt_tm.tm_mon+1, gmt_tm.tm_mday, gmt_tm.tm_hour, gmt_tm.tm_min, gmt_tm.tm_sec);
     while (cur_lap != NULL) {
+        int t = cur_lap->total_time_seconds ?  cur_lap->total_time_seconds : 1;
         /* out lap entity */
         gmt_t = timelocal(&cur_lap->begin->data.timestamp);
         gmtime_r(&gmt_t, &gmt_tm);
@@ -172,9 +173,9 @@ int srm_sync_output_file_tcx(output_file_t *file, char *dir)
             cur_lap->distance_meters,
             cur_lap->maximum_speed,
             (int)(cur_lap->calories/1000),
-            (int)(cur_lap->average_heart_rate_bpm/cur_lap->total_time_seconds),
+            (int)(cur_lap->average_heart_rate_bpm/t),
             cur_lap->maximum_heart_rate_bpm,
-            (int)(cur_lap->cadence/cur_lap->total_time_seconds));
+            (int)(cur_lap->cadence/t));
 
         /* out trackpoint */
         cur = cur_lap->begin;
@@ -192,11 +193,11 @@ int srm_sync_output_file_tcx(output_file_t *file, char *dir)
                 data->heart_rate,
                 data->cadence,
                 data->power,
-                data->temperature*0.1);
+                (double)data->temperature*0.1);
             cur = cur->next;
         }
 
-        fprintf(fp, TCX_LAP_FOOT, cur_lap->calories/cur_lap->total_time_seconds);
+        fprintf(fp, TCX_LAP_FOOT, cur_lap->calories/t);
         next_lap = cur_lap->next;
         free(cur_lap);
         cur_lap = NULL;
