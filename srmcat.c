@@ -6,6 +6,22 @@
 
 #include "srmpc7.h"
 
+static void _print_hex(const char *label, unsigned char *src, int len)
+{
+    const char *hex = "0123456789abcdef";
+    int i;
+    char buff[3];
+    fprintf(stderr, "%s = {\n", label);
+    for (i = 0; i < len; i++) {
+        buff[0] = hex[src[i] >> 4];
+        buff[1] = hex[src[i]&0x0f];
+        buff[2] = '\0';
+        fprintf(stderr, "%02x ", src[i]);
+        if (i != 0 && i % 16 == 0)
+            fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "}\n");
+}
 
 
 static srm_handle_t *current_device = NULL;
@@ -45,23 +61,17 @@ int main()
 
         while ((rc = srm_each_ride_record(file, &record)) > 0) {
             if (record.power == 0 && record.heart_rate == 0 && record.cadence == 0 && record.speed == 0) {
-                continue;
+           //     continue;
             }
-            printf("%5u %4u %4u %5.1f %5d %5.1f  %u:%02u:%02u %6u\r\n",
+            printf("%5u %4u %4u %5.1f %5d %5.1f  %u:%02u:%02u\r\n",
                 record.power,
                 record.heart_rate,
                 record.cadence,
                 (double)(record.speed * 0.1),
                 record.altitude,
                 (double)(record.temperature * 0.1),
-                record.timestamp.tm_hour,record.timestamp.tm_min, record.timestamp.tm_sec,
-                num++
+                record.timestamp.tm_hour,record.timestamp.tm_min, record.timestamp.tm_sec
             );
-/*
-            if (INVALID_CHECKSUM) {
-                fprintf(stderr, "Rec=%d\n", num-1);
-            }
-*/
         }
         if (rc == -1) {
             fprintf(stderr, "cant Write buffer\n");

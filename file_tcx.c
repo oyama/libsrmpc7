@@ -98,6 +98,35 @@ static file_tcx_activity_lap_t *new_tcx_activity_lap()
 }
 
 
+static void clean_zero_record(output_data_record_t *src)
+{
+    output_data_record_t *cur;
+    srm_ride_record_t *rec;
+    srm_ride_record_t *rec1 = NULL, *rec2 = NULL, *rec3 = NULL;
+
+    cur = src;
+    while (cur != NULL) {
+        rec = &cur->data;
+        if (rec->power == 0 && rec->cadence == 0 && rec3 != NULL
+            && rec1->power == rec2->power && rec2->power == rec3->power
+            && rec1->cadence == rec2->cadence && rec2->cadence == rec3->cadence)
+        {
+            if (flag_verbose_mode && rec1->power != 0)
+                printf("%s: clear dirty record at %s", PROGRAM_NAME, asctime(&(rec->timestamp)));
+            rec1->power = rec2->power = rec3->power = 0;
+            rec1->cadence = rec2->cadence = rec3->cadence = 0;
+        }
+
+        if (rec2 != NULL)
+            rec3 = rec2;
+        if (rec1 != NULL)
+            rec2 = rec1;
+        rec1 = rec;
+        cur = cur->next;
+    }
+}
+
+
 int srm_sync_output_file_tcx(output_file_t *file, char *dir)
 {
     output_data_record_t *cur;
@@ -120,6 +149,8 @@ int srm_sync_output_file_tcx(output_file_t *file, char *dir)
         if (flag_verbose_mode) printf("skip exist ride file: %s\n", path);
         return 0;
     }
+
+    clean_zero_record(file->records);
 
     /* create tcx lap object */
     cur = file->records;

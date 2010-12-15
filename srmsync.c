@@ -11,7 +11,7 @@
 #include "srmpc7.h"
 #include "srmsync.h"
 
-#define DEFAULT_SPLIT_THRESHOLD   (120)  /* 2 hour */
+#define DEFAULT_SPLIT_THRESHOLD   (60)  /* 1 hour */
 
 srm_handle_t *srm_device = NULL;
 int flag_verbose_mode = 0;
@@ -138,10 +138,15 @@ static int sync_srm_to_directory(srm_handle_t *srm, char *out_dir, int type, int
     output_data_record_t *rec = NULL;
     output_data_record_t *last_rec = NULL;
     time_t start_time = 0;
+    int record_counter = 0;
 
     while ((block = srm_open_ride_block(srm)) != NULL) {
-        if (flag_verbose_mode)
-            printf("%s: Open block: %s", PROGRAM_NAME, asctime(&block->datetime));
+        if (flag_verbose_mode) {
+            record_counter = 0;
+            printf("zero=%u[Hz] slope=%.1f[Hz/Nm] wheel=%u[mm] record=%u int=%.1f[s] name=\"%s\" date=%s",
+                block->zero_offset, block->slope, block->wheel, block->length,
+                (double)(block->recording_interval/1000), block->nickname, asctime(&(block->datetime)));
+        }
         start_time = mktime(&block->datetime);
         if (start_time - last_record > interval*60) {
             if (file != NULL) {
@@ -153,7 +158,10 @@ static int sync_srm_to_directory(srm_handle_t *srm, char *out_dir, int type, int
             memmove(&file->timestamp, &block->datetime, sizeof(struct tm));
         }
         while ((rc = srm_each_ride_record(block, &record)) > 0) {
-            if (flag_verbose_mode) { printf("."); fflush(stdout); }
+            if (flag_verbose_mode && (record_counter++ % 60) == 0) {
+                printf(".");
+                fflush(stdout);
+            }
             rec = new_output_record(&record);
             last_record = mktime(&record.timestamp);
             if (file->records == NULL) {
