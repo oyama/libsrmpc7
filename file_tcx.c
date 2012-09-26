@@ -40,9 +40,10 @@
     "              <TPX xmlns=\"http://www.garmin.com/xmlschemas/ActivityExtension/v2\">\n" \
     "                <Watts>%u</Watts>\n" \
     "              </TPX>\n" \
-    "              <AX xmlns=\"http://oyama.vox.com/xmlschemas/TcxActivityExtension/v1\">\n" \
+    "              <!-- <AX xmlns=\"http://oyama.vox.com/xmlschemas/TcxActivityExtension/v1\">\n" \
     "                <Temperature>%.3f</Temperature>\n" \
-    "              </AX>\n" \
+    "                <ZeroOffset>%d</ZeroOffset>\n" \
+    "              </AX> -->\n" \
     "            </Extensions>\n" \
     "          </Trackpoint>\n"
 #define TCX_LAP_FOOT "" \
@@ -138,7 +139,7 @@ int srm_sync_output_file_tcx(output_file_t *file, char *dir)
     int lap_num = -1;
     struct tm gmt_tm;
     time_t gmt_t;
-    double lap_dist = 0.0;
+    double total_dist = 0.0;
     struct stat st;
 
     snprintf(path, sizeof(path), "%s%s%04d-%02d-%02d-%02d-%02d-%02d.tcx",
@@ -210,21 +211,22 @@ int srm_sync_output_file_tcx(output_file_t *file, char *dir)
 
         /* out trackpoint */
         cur = cur_lap->begin;
-        lap_dist = 0.0;
+        // total_dist = 0.0;
         while (cur_lap->end != cur) {
             data = &cur->data;
             gmt_t = timelocal(&data->timestamp);
             gmtime_r(&gmt_t, &gmt_tm);
-            lap_dist += ((data->speed*0.1)*1000)/60/60;
+            total_dist += ((data->speed*0.1)*1000)/60/60;
             fprintf(fp, TCX_TRACKPOINT,
                 gmt_tm.tm_year+1900, gmt_tm.tm_mon+1, gmt_tm.tm_mday,
                 gmt_tm.tm_hour, gmt_tm.tm_min, gmt_tm.tm_sec,
                 (double)data->altitude,
-                lap_dist,
+                total_dist,
                 data->heart_rate,
                 data->cadence,
                 data->power,
-                (double)data->temperature*0.1);
+                (double)data->temperature*0.1,
+                data->zero_offset);
             cur = cur->next;
         }
 

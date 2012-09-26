@@ -6,23 +6,6 @@
 
 #include "srmpc7.h"
 
-static void _print_hex(const char *label, unsigned char *src, int len)
-{
-    const char *hex = "0123456789abcdef";
-    int i;
-    char buff[3];
-    fprintf(stderr, "%s = {\n", label);
-    for (i = 0; i < len; i++) {
-        buff[0] = hex[src[i] >> 4];
-        buff[1] = hex[src[i]&0x0f];
-        buff[2] = '\0';
-        fprintf(stderr, "%02x ", src[i]);
-        if (i != 0 && i % 16 == 0)
-            fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "}\n");
-}
-
 
 static srm_handle_t *current_device = NULL;
 
@@ -46,7 +29,7 @@ int main()
 
 
 
-    if ((srm = srm_open(SRM_DEVICE_NAME_PC7)) == NULL) {
+    if ((srm = srm_open(NULL)) == NULL) {
         fprintf(stderr, "can't open device \"%s\": %s\n", SRM_DEVICE_NAME_PC7, srm_get_error_message());
         return 1;
     }

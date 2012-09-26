@@ -28,6 +28,13 @@ srmonline: libsrmpc7.a srmonline.o
 srmerase: libsrmpc7.a srmerase.o
 	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
 
+srmvt: libsrmpc7.a srmvt.o
+	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
+
+srmdebug: libsrmpc7.a srmdebug.o
+	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
+
+
 mock: mockup
 
 mockup: libmockftd2xx.a mock_srmcat mock_srmsync
@@ -41,4 +48,4 @@ mock_srmsync: libsrmpc7.a $(SRMSYNC_OBJ)
 
 
 clean:
-	rm -f *.a *.o mock_* srmcat srmsync srmonline srmerase
+	rm -f *.a *.o mock_* srmcat srmsync srmonline srmerase srmvt

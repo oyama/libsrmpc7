@@ -61,6 +61,8 @@ typedef struct {
     int temperature;         /* Temperature[deg] x 10 */
     int interval;            /* Interval section number */
     struct tm timestamp;     /* timestamp of this record */
+    int zero_offset;         /* A Zero offset[Hz] of this record */
+    double slope;            /* A slope[Hz/Nm] of this record */
 } srm_ride_record_t;
 
 
@@ -116,6 +118,9 @@ int srm_each_ride_record(srm_ride_block_t *block, srm_ride_record_t *record);
 
 int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record);
 
+int srm_get_zero_offset(srm_handle_t *handle, int *zero, int *torque);
+
+int srm_get_battery_time_left(srm_handle_t *handle, int *hour);
 
 int srm_clear_ride_data(srm_handle_t *handle);
 
@@ -124,6 +129,10 @@ int srm_clear_ride_data(srm_handle_t *handle);
  * @return error message.
  */
 const char *srm_get_error_message();
+
+
+size_t srm_msg_exchange_ex(srm_handle_t *handle, const unsigned char *cmd,
+                        unsigned char *buffer, size_t buff_size, size_t *out_size);
 
 
 #ifdef __cplusplus

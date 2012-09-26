@@ -10,29 +10,51 @@
 	80で欠損なし(107s)	2010-08-31
 	100で欠損なし		2010-08-31
 */
-#define SRM_DEVICE_LATENCY_TIMER  80
+#define SRM_DEVICE_LATENCY_TIMER  16
 
+#define SRM_WIRELESS_DEVICE_DESCRIPTION "POWERCONTROL "
 
 
 static const unsigned char SRM_CMD_HEAD[2] = {0xa4, 0xb0};
 
-static const unsigned char SRM_CMD_HELLO[2]            = {0x01, 0x01};
+static const unsigned char SRM_CMD_HELLO[2]             = {0x01, 0x01};
+static const unsigned char SRM_CMD_GET_ONLINE_STATUS[2] = {0x01, 0x06};
+//static const unsigned char SRM_CMD_UNKNOWN[2]         = {0x01, 0x0C}; // 00 00 00 00
+
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x01}; // 00 00
+static const unsigned char SRM_CMD_GET_ZERO_OFFSET[2]   = {0x02, 0x02}; // int[2], int[2]
+static const unsigned char SRM_CMD_GET_CIRCUMFERENCE[2] = {0x02, 0x03}; // 08 55
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x04}; // 01 00 7A 00 A6 00 C6 00 E8 01 08
+static const unsigned char SRM_CMD_GET_INITIAL[2]       = {0x02, 0x05}; // initial[20];
+//static const unsigned char SRM_CMD_GET_INTERVAL[2]    = {0x02, 0x06}; // 03 E8 = 1000
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x07}; // 01 01
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x08}; // 14 14 03
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x09}; // 01
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0A}; // 01
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0B}; // 01 00 78
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0C}; // 03
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0D}; // 00 00 00 5B 00 18 AA 63 00 03
+static const unsigned char SRM_CMD_GET_TIME[2]          = {0x02, 0x0E}; // dd mm YY YY HH MM SS
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0F}; // 01
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x10}; // 01 01 01
+//static const unsigned char SRM_CMD_GET_WIRELESS_SETTING[2] = {0x02, 0x11}; // PM.SN[2] SP.SN[2] HR.SN[2]
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x12}; // 02
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x13}; // 02
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x14}; // 02
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x15}; // 02
+
+//static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x17}; // 02 46 50
+
 static const unsigned char SRM_CMD_HOW_MANY[2]         = {0x04, 0x01};
 static const unsigned char SRM_CMD_NEXT_RIDE_FILE[2]   = {0x04, 0x02};
+//
 static const unsigned char SRM_CMD_GET_RIDE_RECORDS[2] = {0x04, 0x04};
 static const unsigned char SRM_CMD_RETRY_GET_RIDE_RECORDS[2] = {0x04, 0x05};
+//
+static const unsigned char SRM_CMD_CLEAR_RIDE_DATA[2]  = {0x04, 0x07};
+static const unsigned char SRM_CMD_BATTERY_TIME_LEFT[2] = {0x04, 0x08}; // 3F 3F 05 67
 
-static const unsigned char SRM_CMD_GET_TIME[2]         = {0x02, 0x0e};
-                               // day[1], month[1], year[2], hour[1], min[1], sec[1]
-static const unsigned char SRM_CMD_GET_CIRCUMFERENCE[2] = {0x02, 0x03};
-                              // circumference[2]
-static const unsigned char SRM_CMD_GET_INITIAL[2]       = {0x02, 0x05};
-                             // initial[20];
-static const unsigned char SRM_CMD_GET_ZERO_OFFSET[2]   = {0x02, 0x02}; // int[2], int[2]
 
-static const unsigned char SRM_CMD_CLEAR_RIDE_DATA[2]   = {0x04, 0x07};
-
-static const unsigned char SRM_CMD_GET_ONLINE_STATUS[2] = {0x01, 0x06};
 static const unsigned char SRM_RESPONSE_HELLO[] = {0xa4, 0xb0, 0x00, 0x05, 0x01, 0x01, 0xa6, 0x15, 0xa2};
 
 static char srm_error_message[1024];
@@ -121,6 +143,34 @@ static int get_ride_block_datetime(struct tm *t, unsigned char *in)
 }
 
 
+static int wait_device_writable(srm_handle_t *handle)
+{
+    FT_HANDLE fh = *(handle->handle);
+    DWORD rxBytes, txBytes, eventDWord;
+    int result = -1;
+
+    while (FT_GetStatus(fh, &rxBytes, &txBytes, &eventDWord) == FT_OK) {
+        if (txBytes == 0)
+            break;
+    }
+    return result;
+}
+
+
+static int wait_device_readable(srm_handle_t *handle)
+{
+    FT_HANDLE fh = *(handle->handle);
+    DWORD rxBytes, txBytes, eventDWord;
+    int result = -1;
+
+    while (FT_GetStatus(fh, &rxBytes, &txBytes, &eventDWord) == FT_OK) {
+        if (rxBytes > 0)
+            break;
+    }
+    return result;
+}
+
+
 static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
                         unsigned char *buffer, size_t buff_size, size_t *out_size)
 {
@@ -130,6 +180,7 @@ static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
     unsigned char buff[SRM_PACKET_SIZE];
     DWORD l = 0;
 
+    wait_device_writable(handle);    
     st = FT_Write(fh, srm_create_message(msg, cmd), sizeof(msg), &l);
     if (st != FT_OK) {
         fprintf(stderr, "can't FT_Write\n");
@@ -142,12 +193,7 @@ static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
         return 0;
     }
     *out_size = l;
-/*
-    if (memcmp(cmd, SRM_CMD_GET_ONLINE_STATUS, 2) == 0) {
-        return *out_size;
-    }
-*/
-    /* clear read buffer */
+
     st = FT_Read(fh, buff, 0, &l);
     if (st != FT_OK) {
         fprintf(stderr, "clear read buffer FT_Read is not FT_OK\n");
@@ -163,12 +209,14 @@ static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
     {
         fprintf(stderr, "retry get ride records\n");
         /* retry error packet */
+        wait_device_writable(handle);    
         st = FT_Write(fh, srm_create_message(msg, SRM_CMD_RETRY_GET_RIDE_RECORDS), sizeof(msg), &l);
         if (st != FT_OK) {
             fprintf(stderr, "can't FT_Write\n");
             return 0;
         }
     
+        wait_device_readable(handle);    
         st = FT_Read(fh, buffer, buff_size, &l);
         if (st != FT_OK) {
             fprintf(stderr, "can't FT_Read\n");
@@ -187,7 +235,6 @@ static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
             return 0;
         }
     }
-
     return *out_size;
 }
 
@@ -216,7 +263,7 @@ static int init_handle(srm_handle_t *handle)
         strcpy(srm_error_message, "can't set timeouts");
         return 0;
     }
-    st = FT_SetLatencyTimer(fh, 80);
+    st = FT_SetLatencyTimer(fh, SRM_DEVICE_LATENCY_TIMER);
     if (st != FT_OK) {
         strcpy(srm_error_message, "can't set latency timer");
         return 0;
@@ -232,12 +279,16 @@ static int init_handle(srm_handle_t *handle)
         return 0;
     }
 
+    wait_device_writable(handle);    
+    rc = srm_msg_exchange(handle, SRM_CMD_HELLO, buff, sizeof(buff), &len);
+    wait_device_writable(handle);    
     rc = srm_msg_exchange(handle, SRM_CMD_HELLO, buff, sizeof(buff), &len);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd HELLO");
         return 0;
     }
-    if (memcmp(buff, SRM_RESPONSE_HELLO, sizeof(SRM_RESPONSE_HELLO)) != 0) {
+
+    if (memcmp(buff, SRM_RESPONSE_HELLO, sizeof(SRM_RESPONSE_HELLO)-3) != 0) {
         strcpy(srm_error_message, "is not cmd HELLO response");
         return 0;
     }
@@ -270,22 +321,66 @@ static int clear_handle(srm_handle_t *handle)
 srm_handle_t *srm_open(const char *name)
 {
     FT_STATUS st;
+    DWORD nd;
+    FT_DEVICE_LIST_INFO_NODE *dev_info;
+    int i;
+    char dev_name[64];
     FT_HANDLE *ft;
     srm_handle_t *handle;
+
+    if ((st = FT_CreateDeviceInfoList(&nd)) != FT_OK) {
+        strcpy(srm_error_message, "can't create D2XX device info list");
+        return NULL;
+    }
+    if (nd <= 0) {
+        strcpy(srm_error_message, "can't locate D2XX device");
+        return NULL;
+    }
+    if ((dev_info = malloc(sizeof(FT_DEVICE_LIST_INFO_NODE)*nd)) == NULL) {
+        strcpy(srm_error_message, "Out of memory");    
+        return NULL;
+    }
+    if ((st = FT_GetDeviceInfoList(dev_info, &nd)) != FT_OK) {
+        strcpy(srm_error_message, "can't lookup D2XX device list");    
+        return NULL;
+    }
+
+    dev_name[0] = '\0';
+    for (i = 0; i < nd; i++) {
+        if (dev_info[i].Description == NULL)
+            continue;
+        if (strncmp(dev_info[i].Description, SRM_WIRELESS_DEVICE_DESCRIPTION, strlen(SRM_WIRELESS_DEVICE_DESCRIPTION)) == 0)
+        {
+            strncpy(dev_name, dev_info[i].Description, sizeof(dev_name));
+            break;
+        }
+    }
+    free(dev_info);
+
+    if (dev_name[0] == '\0') {
+        strcpy(srm_error_message, "can't locate SRM Wireless device");
+        return NULL;
+    }
 
     if ((ft = malloc(sizeof(FT_HANDLE))) == NULL) {
         strcpy(srm_error_message, "Out of memory");    
         return NULL;
     }
-    st = FT_OpenEx(SRM_DEVICE_NAME_PC7, FT_OPEN_BY_DESCRIPTION, ft);
+    st = FT_OpenEx(dev_name, FT_OPEN_BY_DESCRIPTION, ft);
     if (st != FT_OK) {
         strcpy(srm_error_message, "can't open by device name");
+        free(ft);
         return NULL;
     }
-    FT_ResetDevice(*ft);
 
+    if ((st = FT_ResetDevice(*ft)) != FT_OK) {
+        strcpy(srm_error_message, "can't reset device");
+        free(ft);
+        return NULL;
+    }
     if ((handle = malloc(sizeof(srm_handle_t))) == NULL) {
         strcpy(srm_error_message, "Out of memory");    
+        free(ft);
         return NULL;
     }
     handle->handle      = ft;
@@ -342,9 +437,7 @@ srm_ride_block_t *srm_open_ride_block(srm_handle_t *handle)
     fh->remind        = 0;
     fh->length        =  buff[47] << 8 | buff[48];
     fh->buffer_remind = 0;
-
     handle->readed_file++;
-
     return fh;
 }
 
@@ -392,7 +485,6 @@ int srm_each_ride_record(srm_ride_block_t *fh, srm_ride_record_t *record)
         fprintf(stderr, "buffer remind: %d\n", fh->buffer_remind);
         _print_hex("DEBUG", cur, 16);
     }
-
     record->power       = (cur[0] << 8) | cur[1];
     record->cadence     = cur[2];
     record->speed       = (cur[3] << 8) | cur[4];
@@ -404,6 +496,9 @@ int srm_each_ride_record(srm_ride_block_t *fh, srm_ride_record_t *record)
     ts = mktime(&fh->datetime) + fh->remind;
     timestamp = localtime(&ts);
     memmove(&record->timestamp, timestamp, sizeof(struct tm)); 
+
+    record->slope       = fh->slope;
+    record->zero_offset = fh->zero_offset;
 
     fh->buffer_remind += 16;
     if (fh->buffer_remind >= SRM_PACKET_SIZE)
@@ -443,6 +538,27 @@ int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record)
 }
 
 
+int srm_get_zero_offset(srm_handle_t *handle, int *zero, int *torque)
+{
+    size_t rc, out_len;
+    unsigned char buff[11];
+
+    rc = srm_msg_exchange(handle, SRM_CMD_GET_ZERO_OFFSET, buff, sizeof(buff), &out_len);
+    if (rc <= 0) {
+        strcpy(srm_error_message, "can't exchange cmd SRM_CMD_GET_ZERO_OFFSET");
+        return 0;
+    }
+    if (!is_valid_packet(buff, rc)) {
+        strcpy(srm_error_message, "invalid packet SRM_CMD_GET_ZERO_OFFSET");
+        return 0;
+    }
+
+    *zero = (buff[6] << 8) | buff[7];
+    *torque = (buff[8] << 8) | buff[9];
+    return 1;
+}
+
+
 int srm_clear_ride_data(srm_handle_t *handle)
 {
     size_t rc, out_len;
@@ -462,8 +578,35 @@ int srm_clear_ride_data(srm_handle_t *handle)
 }
 
 
+int srm_get_battery_time_left(srm_handle_t *handle, int *hour)
+{
+    size_t rc, l;
+    unsigned char buff[64];
+
+    rc = srm_msg_exchange(handle, SRM_CMD_BATTERY_TIME_LEFT, buff, sizeof(buff), &l);
+    if (rc <= 0) {
+        strcpy(srm_error_message, "can't exchange cmd SRM_CMD_BATTERY_TIME_LEFT");
+        return 0;
+    }
+    if (!is_valid_packet(buff, rc)) {
+        strcpy(srm_error_message, "invalid packet SRM_CMD_BATTERY_TIME_LEFT");
+        return 0;
+    }
+    // buff[6], buff[7] unknown
+    *hour = (buff[8] << 8) | buff[9];
+    return 1;
+}
+
+
 const char *srm_get_error_message()
 {
     return srm_error_message;
 }
+
+size_t srm_msg_exchange_ex(srm_handle_t *handle, const unsigned char *cmd,
+                        unsigned char *buffer, size_t buff_size, size_t *out_size)
+{
+    return srm_msg_exchange(handle, cmd, buffer, buff_size, out_size);
+}
+
 

@@ -136,6 +136,7 @@ FT_STATUS FT_SetDataCharacteristics(FT_HANDLE ftHandle, UCHAR WordLength, UCHAR 
 
 FT_STATUS FT_SetLatencyTimer(FT_HANDLE ftHandle, UCHAR ucTimer)
 {
+    fprintf(stderr, "MOCK: FT_SetLatencyTimer %u\n",ucTimer);
     return FT_OK;
 }
 
