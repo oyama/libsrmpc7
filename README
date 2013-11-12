@@ -6,7 +6,10 @@ USAGE
   $ ./srmcat
   $ ./srmsync
   $ ./srmerase
-  $ ./srmonline -q | nc -l 8168
+  $ ./srmdatetime
+  $ ./srmbattery
+  $ ./srmonline
+#  $ ./srmonline -q | nc -l 8168
 
 BUILD and INSTALL
 -----------------
@@ -18,7 +21,6 @@ DEPENDENCY
 libftd2xx.dylib:
   "FTDI D2XX driver",
   http://www.ftdichip.com/Drivers/D2XX.htm
-
 
 API
 ---

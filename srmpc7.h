@@ -122,7 +122,11 @@ int srm_get_zero_offset(srm_handle_t *handle, int *zero, int *torque);
 
 int srm_get_battery_time_left(srm_handle_t *handle, int *hour);
 
+int srm_get_datetime(srm_handle_t *handle, struct tm *datetime);
+
 int srm_clear_ride_data(srm_handle_t *handle);
+
+int srm_set_datetime(srm_handle_t *handle, struct tm *datetime);
 
 /**
  * Get latest error message.

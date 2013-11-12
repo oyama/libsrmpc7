@@ -10,7 +10,7 @@ SRMSYNC_OBJ=srmsync.o file_tcx.o
 	$(CC) -Wall $(CFLAGS) $(DEBUG) -c $<
 
 
-all: libsrmpc7.a srmcat srmsync srmonline srmerase
+all: libsrmpc7.a srmcat srmsync srmonline srmerase srmbattery srmdatetime
 
 
 libsrmpc7.a: srmpc7.h $(LIBSRMPC7_OBJ)
@@ -34,6 +34,12 @@ srmvt: libsrmpc7.a srmvt.o
 srmdebug: libsrmpc7.a srmdebug.o
 	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
 
+srmbattery: libsrmpc7.a srmbattery.o
+	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
+
+srmdatetime: libsrmpc7.a srmdatetime.o
+	$(CC) $(CFLAGS) -o $@ $@.o libsrmpc7.a $(LIBS)
+
 
 mock: mockup
 
@@ -48,4 +54,4 @@ mock_srmsync: libsrmpc7.a $(SRMSYNC_OBJ)
 
 
 clean:
-	rm -f *.a *.o mock_* srmcat srmsync srmonline srmerase srmvt
+	rm -f *.a *.o mock_* srmcat srmsync srmonline srmerase srmvt srmdebug srmbattery srmdatetime

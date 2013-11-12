@@ -1,5 +1,11 @@
 Revision history for libsrmpc7.
 
+0.05  Fri Sep 28 00:54:46 JST 2012
+	* add srm_get_battery_time_left().
+	* add srm_set_datetime().
+	* add srmdatetime command.
+	* add srmbattery commadn.
+
 0.04  Mon Nov  8 18:21:33 JST 2010
 	* fix, negative altitude and temperature.
 	* fix, division by zero at very short lap time.

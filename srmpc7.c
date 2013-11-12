@@ -4,12 +4,6 @@
 #define SRM_CMD_SIZE              7
 #define SRM_CMD_RESPONSE_SIZE     9
 #define SRM_RIDE_FILE_HEAD_SIZE   54
-/*
-   SRM_DEVICE_LATENCY_TIMERの値はpacket bufferが充填される余裕と、packetの欠損を防ぐ十分に大きな値にする必要がある。が、大きすぎると遅い。
-	50でpacket欠損あり(86s)	2010-08-31
-	80で欠損なし(107s)	2010-08-31
-	100で欠損なし		2010-08-31
-*/
 #define SRM_DEVICE_LATENCY_TIMER  16
 
 #define SRM_WIRELESS_DEVICE_DESCRIPTION "POWERCONTROL "
@@ -34,7 +28,7 @@ static const unsigned char SRM_CMD_GET_INITIAL[2]       = {0x02, 0x05}; // initi
 //static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0B}; // 01 00 78
 //static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0C}; // 03
 //static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0D}; // 00 00 00 5B 00 18 AA 63 00 03
-static const unsigned char SRM_CMD_GET_TIME[2]          = {0x02, 0x0E}; // dd mm YY YY HH MM SS
+static const unsigned char SRM_CMD_GET_DATETIME[2]      = {0x02, 0x0E}; // dd mm YY YY HH MM SS
 //static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x0F}; // 01
 //static const unsigned char SRM_CMD_GET_UNKNOWN[2]     = {0x02, 0x10}; // 01 01 01
 //static const unsigned char SRM_CMD_GET_WIRELESS_SETTING[2] = {0x02, 0x11}; // PM.SN[2] SP.SN[2] HR.SN[2]
@@ -113,6 +107,24 @@ static unsigned char *srm_create_message(unsigned char *dist, const unsigned cha
 }
 
 
+static unsigned char *srm_create_message_with_body(unsigned char *dist, const unsigned char *command, unsigned char *body, size_t body_l)
+{
+    int i = 0, j;
+
+    dist[i] = SRM_CMD_HEAD[0];
+    dist[++i] = SRM_CMD_HEAD[1];
+    dist[++i] = 0x00;
+    dist[++i] = 2 + body_l+1;
+    dist[++i] = command[0];
+    dist[++i] = command[1];
+    for (j = 0; j < body_l; j++) {
+        dist[++i] = body[j];
+    }
+    dist[++i] = get_packet_checksum(dist, 6 + body_l);
+    return dist;
+}
+
+
 static int get_num_of_ride_blocks(unsigned char *in, size_t in_size)
 {
     int num;
@@ -172,16 +184,29 @@ static int wait_device_readable(srm_handle_t *handle)
 
 
 static size_t srm_msg_exchange(srm_handle_t *handle, const unsigned char *cmd,
-                        unsigned char *buffer, size_t buff_size, size_t *out_size)
+                               unsigned char *body, size_t body_size,
+                               unsigned char *buffer, size_t buff_size, size_t *out_size)
 {
     FT_STATUS st;
     FT_HANDLE fh = *(handle->handle);
     unsigned char msg[SRM_CMD_SIZE];
     unsigned char buff[SRM_PACKET_SIZE];
     DWORD l = 0;
+    unsigned char *long_msg;
 
-    wait_device_writable(handle);    
-    st = FT_Write(fh, srm_create_message(msg, cmd), sizeof(msg), &l);
+    wait_device_writable(handle);
+    if (body_size == 0) {
+        st = FT_Write(fh, srm_create_message(msg, cmd), sizeof(msg), &l);
+    }
+    else {
+        if ((long_msg = malloc(body_size+7)) == NULL) {
+            strcpy(srm_error_message, "Out of memory");    
+            return 0;
+        }
+        srm_create_message_with_body(long_msg, cmd, body, body_size);
+        st = FT_Write(fh, long_msg, body_size+7, &l);
+        free(long_msg);
+    }
     if (st != FT_OK) {
         fprintf(stderr, "can't FT_Write\n");
         return 0;
@@ -280,9 +305,9 @@ static int init_handle(srm_handle_t *handle)
     }
 
     wait_device_writable(handle);    
-    rc = srm_msg_exchange(handle, SRM_CMD_HELLO, buff, sizeof(buff), &len);
+    rc = srm_msg_exchange(handle, SRM_CMD_HELLO, NULL, 0, buff, sizeof(buff), &len);
     wait_device_writable(handle);    
-    rc = srm_msg_exchange(handle, SRM_CMD_HELLO, buff, sizeof(buff), &len);
+    rc = srm_msg_exchange(handle, SRM_CMD_HELLO, NULL, 0, buff, sizeof(buff), &len);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd HELLO");
         return 0;
@@ -293,7 +318,7 @@ static int init_handle(srm_handle_t *handle)
         return 0;
     }
 
-    rc = srm_msg_exchange(handle, SRM_CMD_HOW_MANY, buff, sizeof(buff), &len);
+    rc = srm_msg_exchange(handle, SRM_CMD_HOW_MANY, NULL, 0, buff, sizeof(buff), &len);
     if (rc <= 0) {
         strcpy(srm_error_message, "is not HOW_MANY response");
         return 0;
@@ -416,7 +441,7 @@ srm_ride_block_t *srm_open_ride_block(srm_handle_t *handle)
         return NULL;
     }
 
-    rc = srm_msg_exchange(handle, SRM_CMD_NEXT_RIDE_FILE, buff, sizeof(buff), &len);
+    rc = srm_msg_exchange(handle, SRM_CMD_NEXT_RIDE_FILE, NULL, 0, buff, sizeof(buff), &len);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd NEXT_RIDE_FILE");
         return NULL;
@@ -464,7 +489,7 @@ int srm_each_ride_record(srm_ride_block_t *fh, srm_ride_record_t *record)
         return 0;
     }
     if (fh->buffer_remind == 0) {
-        rc = srm_msg_exchange(fh->handle, SRM_CMD_GET_RIDE_RECORDS, fh->buffer, SRM_PACKET_SIZE, &len);
+        rc = srm_msg_exchange(fh->handle, SRM_CMD_GET_RIDE_RECORDS, NULL, 0, fh->buffer, SRM_PACKET_SIZE, &len);
         if (rc == 0) {
             return -1;
         }
@@ -515,7 +540,7 @@ int srm_get_online_status(srm_handle_t *handle, srm_online_record_t *record)
     size_t rc, out_len;
     unsigned char buff[19];
 
-    rc = srm_msg_exchange(handle, SRM_CMD_GET_ONLINE_STATUS, buff, sizeof(buff), &out_len);
+    rc = srm_msg_exchange(handle, SRM_CMD_GET_ONLINE_STATUS, NULL, 0, buff, sizeof(buff), &out_len);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd GET_ONLINE_STATUS");
         return 0;
@@ -543,7 +568,7 @@ int srm_get_zero_offset(srm_handle_t *handle, int *zero, int *torque)
     size_t rc, out_len;
     unsigned char buff[11];
 
-    rc = srm_msg_exchange(handle, SRM_CMD_GET_ZERO_OFFSET, buff, sizeof(buff), &out_len);
+    rc = srm_msg_exchange(handle, SRM_CMD_GET_ZERO_OFFSET, NULL, 0, buff, sizeof(buff), &out_len);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd SRM_CMD_GET_ZERO_OFFSET");
         return 0;
@@ -564,7 +589,7 @@ int srm_clear_ride_data(srm_handle_t *handle)
     size_t rc, out_len;
     unsigned char buff[64];
  
-    rc = srm_msg_exchange(handle, SRM_CMD_CLEAR_RIDE_DATA, buff, sizeof(buff), &out_len);
+    rc = srm_msg_exchange(handle, SRM_CMD_CLEAR_RIDE_DATA, NULL, 0, buff, sizeof(buff), &out_len);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd SRM_CMD_CLEAR_RIDE_DATA");
         return 0;
@@ -583,7 +608,7 @@ int srm_get_battery_time_left(srm_handle_t *handle, int *hour)
     size_t rc, l;
     unsigned char buff[64];
 
-    rc = srm_msg_exchange(handle, SRM_CMD_BATTERY_TIME_LEFT, buff, sizeof(buff), &l);
+    rc = srm_msg_exchange(handle, SRM_CMD_BATTERY_TIME_LEFT, NULL, 0, buff, sizeof(buff), &l);
     if (rc <= 0) {
         strcpy(srm_error_message, "can't exchange cmd SRM_CMD_BATTERY_TIME_LEFT");
         return 0;
@@ -598,15 +623,65 @@ int srm_get_battery_time_left(srm_handle_t *handle, int *hour)
 }
 
 
+
+int srm_get_datetime(srm_handle_t *handle, struct tm *datetime)
+{
+    int rc;
+    size_t l;
+    unsigned char buff[64];
+    time_t time;
+    struct tm *t;
+
+    rc = srm_msg_exchange(handle, SRM_CMD_GET_DATETIME, NULL, 0, buff, sizeof(buff), &l);
+    if (rc <= 0) {
+        strcpy(srm_error_message, "can't exchange cmd SRM_CMD_GET_DATETIME");
+        return 0;
+    }
+
+    datetime->tm_mday  = buff[6];
+    datetime->tm_mon   = buff[7] - 1;
+    datetime->tm_year  = (buff[8] << 8 | buff[9]) - 1900;
+    datetime->tm_hour  = buff[10];
+    datetime->tm_min   = buff[11];
+    datetime->tm_sec   = buff[12];
+    datetime->tm_isdst = 0;
+
+    time = mktime(datetime);
+    t = localtime(&time);
+    memmove(datetime, t, sizeof(struct tm));
+
+    return 1; 
+}
+
+
 const char *srm_get_error_message()
 {
     return srm_error_message;
 }
 
+
+int srm_set_datetime(srm_handle_t *handle, struct tm *datetime)
+{
+    unsigned char srm_time[7];
+    unsigned int year = datetime->tm_year + 1900;
+    unsigned char buff[64];
+    size_t l;
+
+    srm_time[0] = datetime->tm_mday;
+    srm_time[1] = datetime->tm_mon + 1;
+    srm_time[2] = year >> 8;
+    srm_time[3] = year & 0x00FF;
+    srm_time[4] = datetime->tm_hour;
+    srm_time[5] = datetime->tm_min;
+    srm_time[6] = datetime->tm_sec;
+    return srm_msg_exchange(handle, SRM_CMD_GET_DATETIME, srm_time, sizeof(srm_time), buff, sizeof(buff), &l);
+}
+
+
 size_t srm_msg_exchange_ex(srm_handle_t *handle, const unsigned char *cmd,
                         unsigned char *buffer, size_t buff_size, size_t *out_size)
 {
-    return srm_msg_exchange(handle, cmd, buffer, buff_size, out_size);
+    return srm_msg_exchange(handle, cmd, NULL, 0, buffer, buff_size, out_size);
 }
 
 

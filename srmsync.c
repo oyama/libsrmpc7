@@ -182,23 +182,6 @@ static int sync_srm_to_directory(srm_handle_t *srm, char *out_dir, int type, int
 }
 
 
-static void report_srm_battery_time_left(srm_handle_t *srm)
-{
-    int time_left = -1;
-
-    if (srm_get_battery_time_left(srm, &time_left) == 0) {
-        fprintf(stderr, "%s: can't lookup battery time left\n", PROGRAM_NAME);
-        return;
-    }
-    if (time_left < 0) {
-        fprintf(stderr, "%s: can't lookup battery time left\n", PROGRAM_NAME);
-        return;
-    }
-    printf("Battery Time Left=%d[hour]\n", time_left);
-    return;
-}
-
-
 static int usage()
 {
     printf("Usage: %s [-hv] [-t FILE_TYPE] [-i SPLIT_THRESHOLD] /path/to/directory\n"
@@ -272,7 +255,6 @@ int main(int argc, char *argv[])
     signal(SIGTRAP, cleanup);
 
     sync_srm_to_directory(srm, out_directory, flag_file_type, flag_inactive_time);
-    report_srm_battery_time_left(srm);
 
     srm_device = NULL;
     srm_close(srm);
